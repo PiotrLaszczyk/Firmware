@@ -150,22 +150,28 @@ set(config_module_list
 	#examples/math_demo
 	# Tutorial code from
 	# https://px4.io/dev/px4_simple_app
-	#examples/px4_simple_app
+	examples/accelerometer_module_app
 
 	# Tutorial code from
 	# https://px4.io/dev/daemon
-	#examples/px4_daemon_app
+	examples/px4_daemon_app
 
 	# Tutorial code from
 	# https://px4.io/dev/debug_values
-	#examples/px4_mavlink_debug
+	examples/px4_mavlink_debug
 
 	# Tutorial code from
 	# https://px4.io/dev/example_fixedwing_control
-	#examples/fixedwing_control
+	examples/fixedwing_control
 
 	# Hardware test
-	#examples/hwtest
+	examples/hwtest
+
+        # Publisher
+        #examples/publisher
+
+        # Subscriber
+        #examples/subscriber
 )
 
 set(config_extra_builtin_cmds
