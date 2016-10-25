@@ -48,8 +48,7 @@ int accelerometer_module_app_main(int argc, char *argv[])
 			/* this is seriously bad - should be an emergency */
 			if (error_counter < 10 || error_counter % 50 == 0) {
 				/* use a counter to prevent flooding (and slowing us down) */
-				PX4_ERR("[sensors module] ERROR return value from poll(): %d"
-					, poll_ret);
+                PX4_ERR("[sensors module] ERROR return value from poll(): %d", poll_ret);
 			}
 
 			error_counter++;

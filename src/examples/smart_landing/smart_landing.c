@@ -56,19 +56,17 @@
 #include <limits.h>
 #include <math.h>
 #include <uORB/uORB.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 #include <poll.h>
 
-__EXPORT int matlab_csv_serial_main(int argc, char *argv[]);
+__EXPORT int smart_landing_main(int argc, char *argv[]);
 static bool thread_should_exit = false;		/**< Daemon exit flag */
 static bool thread_running = false;		/**< Daemon status flag */
 static int daemon_task;				/**< Handle of daemon task / thread */
 
-int matlab_csv_serial_thread_main(int argc, char *argv[]);
+int smart_landing_thread_main(int argc, char *argv[]);
 static void usage(const char *reason);
 
 static void usage(const char *reason)
@@ -89,7 +87,7 @@ static void usage(const char *reason)
  * The actual stack size should be set in the call
  * to px4_task_spawn_cmd().
  */
-int matlab_csv_serial_main(int argc, char *argv[])
+int smart_landing_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		usage("missing command");
@@ -103,11 +101,11 @@ int matlab_csv_serial_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		daemon_task = px4_task_spawn_cmd("matlab_csv_serial",
+        daemon_task = px4_task_spawn_cmd("smart_landing",
 						 SCHED_DEFAULT,
 						 SCHED_PRIORITY_MAX - 5,
 						 2000,
-						 matlab_csv_serial_thread_main,
+                         smart_landing_thread_main,
 						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
 		exit(0);
 	}
@@ -132,7 +130,7 @@ int matlab_csv_serial_main(int argc, char *argv[])
 	exit(1);
 }
 
-int matlab_csv_serial_thread_main(int argc, char *argv[])
+int smart_landing_thread_main(int argc, char *argv[])
 {
 
 	if (argc < 2) {
@@ -144,8 +142,6 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 	warnx("opening port %s", uart_name);
 
 	int serial_fd = open(uart_name, O_RDWR | O_NOCTTY);
-
-	unsigned speed = 921600;
 
 	if (serial_fd < 0) {
 		err(1, "failed to open port: %s", uart_name);
@@ -165,17 +161,13 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 	/* Clear ONLCR flag (which appends a CR for every LF) */
 	uart_config.c_oflag &= ~ONLCR;
 
-	/* USB serial is indicated by /dev/ttyACM0*/
-	if (strcmp(uart_name, "/dev/ttyACM0") != OK && strcmp(uart_name, "/dev/ttyACM1") != OK) {
-
-		/* Set baud rate */
-		if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-			warnx("ERR SET BAUD %s: %d\n", uart_name, termios_state);
-			close(serial_fd);
-			return -1;
-		}
-
-	}
+    /* Set baud rate */
+    const unsigned speed = 19200;
+    if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
+        warnx("ERR SET BAUD %s: %d\n", uart_name, termios_state);
+        close(serial_fd);
+        return -1;
+    }
 
 	if ((termios_state = tcsetattr(serial_fd, TCSANOW, &uart_config)) < 0) {
 		warnx("ERR SET CONF %s\n", uart_name);
@@ -183,53 +175,21 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 		return -1;
 	}
 
-	/* subscribe to vehicle status, attitude, sensors and flow*/
-	struct accel_report accel0;
-	struct accel_report accel1;
-	struct gyro_report gyro0;
-	struct gyro_report gyro1;
-
-	/* subscribe to parameter changes */
-	int accel0_sub = orb_subscribe_multi(ORB_ID(sensor_accel), 0);
-	int accel1_sub = orb_subscribe_multi(ORB_ID(sensor_accel), 1);
-	int gyro0_sub = orb_subscribe_multi(ORB_ID(sensor_gyro), 0);
-	int gyro1_sub = orb_subscribe_multi(ORB_ID(sensor_gyro), 1);
-
 	thread_running = true;
 
 	while (!thread_should_exit) {
 
-		/*This runs at the rate of the sensors */
-		struct pollfd fds[] = {
-			{ .fd = accel0_sub, .events = POLLIN }
-		};
+        dprintf(serial_fd, "getDelay\r");
+        PX4_WARN("meessage: getDelay\n");
 
-		/* wait for a sensor update, check for exit condition every 500 ms */
-		int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), 500);
+        usleep(1000000);
 
-		if (ret < 0) {
-			/* poll error, ignore */
-
-		} else if (ret == 0) {
-			/* no return value, ignore */
-			warnx("no sensor data");
-
-		} else {
-
-			/* accel0 update available? */
-			if (fds[0].revents & POLLIN) {
-                orb_copy(ORB_ID(sensor_accel), accel0_sub, &accel0);
-                orb_copy(ORB_ID(sensor_accel), accel1_sub, &accel1);
-                orb_copy(ORB_ID(sensor_gyro), gyro0_sub, &gyro0);
-                orb_copy(ORB_ID(sensor_gyro), gyro1_sub, &gyro1);
-
-                // write out on accel 0, but collect for all other sensors as they have updates
-                dprintf(serial_fd, "%llu,%d,%d,%d,%d,%d,%d\n", accel0.timestamp, (int)accel0.x_raw, (int)accel0.y_raw,
-                    (int)accel0.z_raw,
-                    (int)accel1.x_raw, (int)accel1.y_raw, (int)accel1.z_raw);
-			}
-
-		}
+        char serial_buf[1000];
+        int len = read(serial_fd, serial_buf, sizeof(serial_buf));
+        serial_buf[len] = '\0';
+        if (len > 0) {
+            PX4_WARN("ret:\n%s\n",serial_buf);
+        }
 	}
 
 	warnx("exiting");

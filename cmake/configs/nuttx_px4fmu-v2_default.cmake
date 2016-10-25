@@ -113,6 +113,11 @@ set(config_module_list
 	modules/dataman
 
 	#
+        # Debug
+	#
+	#modules/simulator
+
+	#
 	# Libraries
 	#
 	lib/controllib
@@ -152,6 +157,8 @@ set(config_module_list
 	# https://px4.io/dev/px4_simple_app
 	examples/accelerometer_module_app
 
+        examples/smart_landing
+
 	# Tutorial code from
 	# https://px4.io/dev/daemon
 	examples/px4_daemon_app
@@ -171,7 +178,7 @@ set(config_module_list
         #examples/publisher
 
         # Subscriber
-        #examples/subscriber
+        examples/subscriber
 )
 
 set(config_extra_builtin_cmds

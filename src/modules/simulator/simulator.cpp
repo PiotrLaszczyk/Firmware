@@ -188,12 +188,12 @@ extern "C" {
 				}
 
 				// enable lockstep support
-				px4_enable_sim_lockstep();
+                //px4_enable_sim_lockstep();
 
 				g_sim_task = px4_task_spawn_cmd("simulator",
 								SCHED_DEFAULT,
 								SCHED_PRIORITY_MAX,
-								1500,
+                                2000,
 								Simulator::start,
 								argv);
 

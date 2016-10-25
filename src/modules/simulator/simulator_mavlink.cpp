@@ -39,6 +39,8 @@
 #include <drivers/drv_pwm_output.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
+#include <termios.h>
 #include <pthread.h>
 
 extern "C" __EXPORT hrt_abstime hrt_reset(void);
@@ -512,7 +514,7 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	// setup serial connection to autopilot (used to get manual controls)
 	int serial_fd = openUart(PIXHAWK_DEVICE, 115200);
 
-	char serial_buf[1024];
+    char serial_buf[650];
 
 	struct pollfd fds[2];
 	memset(fds, 0, sizeof(fds));
@@ -607,8 +609,8 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 				// we do not want to spam the console by default
 				// PX4_WARN("mavlink sim timeout for %d ms", max_wait_ms);
 				sim_delay = true;
-				hrt_start_delay();
-				px4_sim_start_delay();
+                //hrt_start_delay();
+                //px4_sim_start_delay();
 			}
 
 			continue;
@@ -616,8 +618,8 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 
 		if (sim_delay) {
 			sim_delay = false;
-			hrt_stop_delay();
-			px4_sim_stop_delay();
+            //hrt_stop_delay();
+            //px4_sim_stop_delay();
 		}
 
 		// this is undesirable but not much we can do
@@ -753,7 +755,7 @@ int openUart(const char *uart_name, int baud)
 	}
 
 	// Make raw
-	cfmakeraw(&uart_config);
+    //cfmakeraw(&uart_config);
 
 	if ((termios_state = tcsetattr(uart_fd, TCSANOW, &uart_config)) < 0) {
 		warnx("ERR SET CONF %s\n", uart_name);
